@@ -21,7 +21,7 @@ const policiesRoutes = require("./routes/policys"); // Import policies routes
 const sheetsRoutes = require("./routes/sheets"); // Import sheets routes
 
 dotenv.config();
-
+const mongoURI = process.env.Mongo;
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -108,7 +108,7 @@ if (!process.env.JWT_SECRET) {
 
 // Connect to MongoDB
 mongoose
-  .connect("mongodb://localhost:27017/babybloom")
+  .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log("Connected to MongoDB");
   })
