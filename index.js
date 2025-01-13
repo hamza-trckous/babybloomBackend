@@ -21,7 +21,7 @@ const policiesRoutes = require("./routes/policys"); // Import policies routes
 const sheetsRoutes = require("./routes/sheets"); // Import sheets routes
 
 dotenv.config();
-const mongoURI = process.env.Mongo;
+const mongoURI = process.env.MONGO_URI;
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -108,12 +108,13 @@ if (!process.env.JWT_SECRET) {
 
 // Connect to MongoDB
 mongoose
-  .connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(mongoURI)
   .then(() => {
     console.log("Connected to MongoDB");
   })
   .catch((err) => {
-    throw new AppError("Database connection error: " + err.message, 500);
+    console.error("Database connection error:", err.message);
+    process.exit(1); // Exit the process if the database connection fails
   });
 
 // Basic route with error handling
