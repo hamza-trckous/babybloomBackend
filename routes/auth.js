@@ -3,85 +3,178 @@ const router = express.Router();
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const Cookies = require("cookies");
 const { z } = require("zod");
 const catchAsync = require("../utils/catchAsync");
 const { AuthenticationError } = require("../utils/errors");
 
+// Validation schemas
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 });
 
+// Cookie configuration
+const getCookieConfig = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  path: "/",
+  maxAge: 3600000, // 1 hour
+});
+
+// Login route
 router.post(
   "/login",
   catchAsync(async (req, res) => {
-    const { email, password } = loginSchema.parse(req.body);
-    console.log("Login attempt with email:", email); // Add logging
+    try {
+      // Validate request body
+      const { email, password } = loginSchema.parse(req.body);
+      console.log("Login attempt with email:", email);
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      console.log("User not found for email:", email); // Add logging
-      throw new AuthenticationError("Invalid email or password");
-    }
-
-    console.log("User found:", user); // Add logging
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      console.log("Password mismatch for user:", user.username); // Add logging
-      throw new AuthenticationError("Invalid email or password");
-    }
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "1h",
+      // Find user
+      const user = await User.findOne({ email }).select("+password");
+      if (!user) {
+        console.log("User not found for email:", email);
+        throw new AuthenticationError("Invalid email or password");
       }
-    );
 
-    const cookies = new Cookies(req, res);
-    cookies.set("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 3600000, // 1 hour
-    });
+      // Verify password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        console.log("Password mismatch for user:", user.email);
+        throw new AuthenticationError("Invalid email or password");
+      }
 
-    res.status(200).json({ message: "Login successful" });
+      // Generate token
+      const token = jwt.sign(
+        {
+          id: user._id,
+          role: user.role,
+          email: user.email,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+
+      // Set cookie
+      res.cookie("token", token, getCookieConfig());
+
+      // Send response
+      res.status(200).json({
+        status: "success",
+        message: "Login successful",
+        user: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
   })
 );
 
-router.get("/check-auth", async (req, res) => {
-  const token = req.cookies.token;
+// Check authentication status
+router.get(
+  "/check-auth",
+  catchAsync(async (req, res) => {
+    const token = req.cookies.token;
 
-  if (!token) {
-    return res.status(200).json({ isAuthenticated: false });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-    if (err) {
-      console.error("JWT verification error:", err);
-      return res
-        .status(500)
-        .json({ isAuthenticated: false, error: "Internal Server Error" });
+    if (!token) {
+      return res.status(200).json({
+        status: "success",
+        isAuthenticated: false,
+      });
     }
 
     try {
-      const user = await User.findById(decoded.id);
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Find user
+      const user = await User.findById(decoded.id).select("-password");
       if (!user) {
-        return res.status(404).json({ isAuthenticated: false });
+        return res.status(200).json({
+          status: "success",
+          isAuthenticated: false,
+        });
       }
-      return res.status(200).json({ isAuthenticated: true, role: user.role });
+
+      // Refresh token if needed
+      const timeLeft = decoded.exp - Math.floor(Date.now() / 1000);
+      if (timeLeft < 600) {
+        // Less than 10 minutes left
+        const newToken = jwt.sign(
+          {
+            id: user._id,
+            role: user.role,
+            email: user.email,
+          },
+          process.env.JWT_SECRET,
+          { expiresIn: "1h" }
+        );
+        res.cookie("token", newToken, getCookieConfig());
+      }
+
+      return res.status(200).json({
+        status: "success",
+        isAuthenticated: true,
+        user: {
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      });
     } catch (error) {
-      console.error("Error fetching user:", error);
-      return res
-        .status(500)
-        .json({ isAuthenticated: false, error: "Internal Server Error" });
+      console.error("Auth check error:", error);
+
+      // Clear invalid token
+      res.clearCookie("token", getCookieConfig());
+
+      return res.status(200).json({
+        status: "success",
+        isAuthenticated: false,
+      });
     }
-  });
-});
+  })
+);
+
+// Logout route
+router.post(
+  "/logout",
+  catchAsync(async (req, res) => {
+    try {
+      res.clearCookie("token", getCookieConfig());
+
+      res.status(200).json({
+        status: "success",
+        message: "Logout successful",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      throw error;
+    }
+  })
+);
+
+// Test cookie route (for debugging)
+router.get(
+  "/test-cookie",
+  catchAsync(async (req, res) => {
+    try {
+      res.cookie("test-cookie", "test-value", getCookieConfig());
+      res.json({
+        status: "success",
+        message: "Test cookie set",
+        cookieConfig: getCookieConfig(),
+      });
+    } catch (error) {
+      console.error("Test cookie error:", error);
+      throw error;
+    }
+  })
+);
 
 module.exports = router;
