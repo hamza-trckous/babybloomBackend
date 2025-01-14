@@ -8,6 +8,7 @@ dotenv.config();
 const createAdminUsers = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
+    console.log("Connected to MongoDB 2");
 
     const adminUsers = [
       {
@@ -15,12 +16,16 @@ const createAdminUsers = async () => {
         email: "admin1@example.com",
         password: "admin123",
         role: "admin",
+        name: "Admin",
+        lastname: "One",
       },
       {
         username: "admin2",
         email: "admin2@example.com",
         password: "admin123",
         role: "admin",
+        name: "Admin",
+        lastname: "Two",
       },
     ];
 
@@ -32,13 +37,19 @@ const createAdminUsers = async () => {
           ...admin,
           password: hashedPassword,
         });
-        console.log(`Admin user ${admin.username} created`);
+        console.log(
+          `Admin user ${admin.username} created with hashed password: ${hashedPassword}`
+        );
       } else {
         console.log(`Admin user ${admin.username} already exists`);
       }
     }
 
+    const allUsers = await User.find({ role: "admin" });
+    console.log("All admin users in the database:", allUsers);
+
     mongoose.connection.close(); // Close the connection after creating users
+    console.log("Connection to MongoDB closed");
   } catch (error) {
     console.error("Error creating admin users:", error);
   }

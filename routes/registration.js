@@ -14,11 +14,10 @@ const { ValidationError, AuthenticationError } = require("../utils/errors");
 const registerSchema = z.object({
   name: z.string().min(1),
   lastname: z.string().min(1),
-  dateOfbirth: z.date().optional(),
+  dateOfbirth: z.string().optional(), // Change to string
   username: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(["admin", "user"]),
   placeofbirth: z.string().optional(),
 });
 
@@ -30,27 +29,26 @@ const loginSchema = z.object({
 router.post(
   "/register",
   catchAsync(async (req, res) => {
-    const { username, email, password, role } = registerSchema.parse(req.body);
+    const { name, lastname, username, email, password } = registerSchema.parse(
+      req.body
+    );
 
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
       throw new ValidationError("Username or email already exists");
     }
 
-    if (role === "admin") {
-      const adminCount = await User.countDocuments({ role: "admin" });
-      if (adminCount >= 2) {
-        throw new ValidationError("Cannot register more than 2 admins");
-      }
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
+      name,
+      lastname,
       username,
       email,
       password: hashedPassword,
-      role,
+      dateOfbirth: req.body.dateOfbirth,
+      placeofbirth: req.body.placeofbirth,
+      role: "user", // Set role to "user" by default
     });
 
     await newUser.save();
