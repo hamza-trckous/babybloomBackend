@@ -4,9 +4,11 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
-const helmet = require("helmet"); // Import helmet for security headers
+const helmet = require("helmet");
 const errorHandler = require("./middleware/errorHandler");
 const { AppError } = require("./utils/errors");
+
+// Import routes
 const authRoutes = require("./routes/auth");
 const registrationRoutes = require("./routes/registration");
 const productsRoutes = require("./routes/products");
@@ -15,94 +17,112 @@ const ordersRoutes = require("./routes/orders");
 const cartRoutes = require("./routes/cart");
 const shippingRoutes = require("./routes/shipping");
 const conversionRoutes = require("./routes/conversion");
-const settingsRoutes = require("./routes/settings"); // Import settings routes
-const ipRoute = require("./routes/ip"); // Import the IP route
-const policiesRoutes = require("./routes/policys"); // Import policies routes
-const sheetsRoutes = require("./routes/sheets"); // Import sheets routes
+const settingsRoutes = require("./routes/settings");
+const ipRoute = require("./routes/ip");
+const policiesRoutes = require("./routes/policys");
+const sheetsRoutes = require("./routes/sheets");
 
 dotenv.config();
-const mongoURI = process.env.MONGO_URI;
-const app = express();
-const port = process.env.PORT || 5000;
 
-app.use(express.json());
+// Environment variables and constants
+const isProduction = process.env.NODE_ENV === "production";
+const mongoURI = process.env.MONGO_URI;
+const port = process.env.PORT || 5000;
+const app = express();
+
+// Cookie configuration
+const cookieConfig = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "none" : "lax",
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  path: "/",
+};
 
 // CORS Configuration
 const allowedOrigins = [
-  "http://localhost:3000", // Add your local development URL
+  "http://localhost:3000",
   "https://frontend-babybloom.vercel.app",
-  "https://frontend-babybloom-cojy96gsl-hamza-trickings-projects.vercel.app", // Add your deployment URL
+  "https://frontend-babybloom-cojy96gsl-hamza-trickings-projects.vercel.app",
 ];
 
+// CORS middleware with debugging
 app.use(
   cors({
     origin: function (origin, callback) {
+      console.log("Request Origin:", origin);
+
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        console.log("Origin blocked:", origin);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
       }
     },
-    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Set-Cookie"],
   })
 );
 
-// Apply Helmet middleware for security headers
+// Security middleware
 app.use(helmet());
 
-// Set custom Content Security Policy
+// Custom CSP configuration
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
         "*.facebook.com",
         "*.fbcdn.net",
         "*.facebook.net",
-        "127.0.0.1:*",
-        "'unsafe-inline'",
-        "blob:",
-        "data:",
         "connect.facebook.net",
-        "'wasm-unsafe-eval'",
         "https://*.google-analytics.com",
         "*.google.com",
-        "https://gw.conversionsapigateway.com", // Added this line
+        "https://gw.conversionsapigateway.com",
+        "blob:",
+        "data:",
       ],
-      // ...other directives...
+      connectSrc: ["'self'", ...allowedOrigins],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'", "data:", "https:"],
+      frameSrc: ["'self'", "*.facebook.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
     },
   })
 );
 
-// Middleware
+// Parse requests
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
-app.use(express.json());
 app.use(cookieParser());
 
-// Handle preflight requests
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin);
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.sendStatus(204);
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
 });
 
 // Routes
 app.use("/api", registrationRoutes);
 app.use("/api", authRoutes);
 app.use("/api/products", productsRoutes);
-app.use("/api/users", usersRoutes); // Use users routes
+app.use("/api/users", usersRoutes);
 app.use("/api/orders", ordersRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api", conversionRoutes);
-app.use("/api", settingsRoutes); // Use settings routes
-app.use("/api", ipRoute); // Use the IP route
-app.use("/api", policiesRoutes); // Use policies routes
-app.use("/api", sheetsRoutes); // Use sheets routes
+app.use("/api", settingsRoutes);
+app.use("/api", ipRoute);
+app.use("/api", policiesRoutes);
+app.use("/api", sheetsRoutes);
 
 // Catch async errors
 const catchAsync = (fn) => {
@@ -111,44 +131,68 @@ const catchAsync = (fn) => {
   };
 };
 
-// Ensure that the JWT_SECRET environment variable is set
+// Environment variable check
 if (!process.env.JWT_SECRET) {
   throw new AppError("JWT_SECRET environment variable is not set", 500);
 }
 
-// Connect to MongoDB
-mongoose
-  .connect(mongoURI)
-  .then(() => {
+// MongoDB connection with retry logic
+const connectDB = async (retries = 5) => {
+  try {
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
     console.log("Connected to MongoDB");
-  })
-  .catch((err) => {
-    console.error("Database connection error:", err.message);
-    process.exit(1); // Exit the process if the database connection fails
-  });
+  } catch (err) {
+    if (retries === 0) {
+      console.error("Database connection failed:", err.message);
+      process.exit(1);
+    }
+    console.log(`Retrying connection... (${retries} attempts remaining)`);
+    setTimeout(() => connectDB(retries - 1), 5000);
+  }
+};
 
-// Basic route with error handling
+connectDB();
+
+// Basic route
 app.get(
   "/",
   catchAsync(async (req, res) => {
-    res.send("Hello, world!");
+    res.send("Server is running");
   })
 );
 
-// Handle undefined Routes
+// Handle undefined routes
 app.all("*", (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
-// Global error handling middleware
-app.use(errorHandler);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Error:", {
+    name: err.name,
+    message: err.message,
+    stack: isProduction ? undefined : err.stack,
+  });
 
-// Start server with error handling
-const server = app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  if (err.message.includes("not allowed by CORS")) {
+    return res.status(403).json({
+      status: "error",
+      message: "CORS error: Origin not allowed",
+    });
+  }
+
+  errorHandler(err, req, res, next);
 });
 
-// Handle unhandled rejections
+// Start server
+const server = app.listen(port, () => {
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
+});
+
+// Handle unhandled promise rejections
 process.on("unhandledRejection", (err) => {
   console.error("UNHANDLED REJECTION! 💥 Shutting down...");
   console.error(err.name, err.message);
@@ -163,3 +207,16 @@ process.on("uncaughtException", (err) => {
   console.error(err.name, err.message);
   process.exit(1);
 });
+
+// Graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received. Shutting down gracefully");
+  server.close(() => {
+    console.log("Process terminated");
+    mongoose.connection.close(false, () => {
+      process.exit(0);
+    });
+  });
+});
+
+module.exports = app;
