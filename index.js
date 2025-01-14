@@ -28,14 +28,24 @@ const port = process.env.PORT || 5000;
 app.use(express.json());
 
 // CORS Configuration
-const corsOptions = {
-  origin: "https://frontend-babybloom.vercel.app",
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
+const allowedOrigins = [
+  "http://localhost:3000", // Add your local development URL
+  "https://frontend-babybloom.vercel.app",
+  "https://frontend-babybloom-cojy96gsl-hamza-trickings-projects.vercel.app", // Add your deployment URL
+];
 
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  })
+);
 
 // Apply Helmet middleware for security headers
 app.use(helmet());
@@ -73,7 +83,7 @@ app.use(cookieParser());
 
 // Handle preflight requests
 app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header("Access-Control-Allow-Origin", req.headers.origin);
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.header("Access-Control-Allow-Credentials", "true");

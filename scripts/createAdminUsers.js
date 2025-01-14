@@ -37,9 +37,13 @@ const createAdminUsers = async () => {
         console.log(`Admin user ${admin.username} already exists`);
       }
     }
+
+    mongoose.connection.close(); // Close the connection after creating users
   } catch (error) {
     console.error("Error creating admin users:", error);
   }
 };
+
+createAdminUsers(); // Call the function to create admin users
 
 module.exports = createAdminUsers;

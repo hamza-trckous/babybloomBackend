@@ -12,10 +12,14 @@ const { ValidationError, AuthenticationError } = require("../utils/errors");
 // ...existing code...
 
 const registerSchema = z.object({
+  name: z.string().min(1),
+  lastname: z.string().min(1),
+  dateOfbirth: z.date().optional(),
   username: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
   role: z.enum(["admin", "user"]),
+  placeofbirth: z.string().optional(),
 });
 
 const loginSchema = z.object({
