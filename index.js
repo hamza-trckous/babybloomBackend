@@ -88,10 +88,15 @@ app.use(
         "blob:",
         "data:",
       ],
-      connectSrc: ["'self'", ...allowedOrigins],
+      connectSrc: [
+        "'self'",
+        "*.facebook.com",
+        "*.google-analytics.com",
+        "http://localhost:5000",
+      ],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      fontSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "data:", "*.gstatic.com"], // Allow fonts from data URIs and gstatic.com
       frameSrc: ["'self'", "*.facebook.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
