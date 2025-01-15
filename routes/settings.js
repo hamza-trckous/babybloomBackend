@@ -1,26 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const dotenv = require("dotenv");
-const fs = require("fs");
-const path = require("path");
-
-dotenv.config();
+const Setting = require("../models/Setting"); // Import the Setting model
 
 router.post("/settings", async (req, res) => {
   const { pixelId, accessToken } = req.body;
   console.log("pixelId", pixelId);
   console.log("accessToken", accessToken);
   try {
-    // Update environment variables
-    const envPath = path.resolve(__dirname, "../.env");
-    const envConfig = fs.readFileSync(envPath, "utf8");
-    const updatedEnvConfig = envConfig
-      .replace(/FB_PIXEL_ID=.*/, `FB_PIXEL_ID=${pixelId}`)
-      .replace(/FB_ACCESS_TOKEN=.*/, `FB_ACCESS_TOKEN=${accessToken}`);
-    fs.writeFileSync(envPath, updatedEnvConfig);
-
-    // Reload environment variables
-    dotenv.config({ path: envPath });
+    // Update settings in MongoDB
+    const settings = await Setting.findOneAndUpdate(
+      {},
+      { pixelId, accessToken, lastUpdated: Date.now() },
+      { upsert: true, new: true }
+    );
 
     res.status(200).send("Settings saved successfully");
   } catch (error) {
@@ -31,12 +23,11 @@ router.post("/settings", async (req, res) => {
 
 router.get("/settings", async (req, res) => {
   try {
-    // Reload environment variables
-    dotenv.config();
-
-    const pixelId = process.env.FB_PIXEL_ID || "";
-    const accessToken = process.env.FB_ACCESS_TOKEN || "";
-    res.status(200).json({ pixelId, accessToken });
+    const settings = await Setting.findOne({});
+    if (!settings) {
+      return res.status(404).send("Settings not found");
+    }
+    res.status(200).json(settings);
   } catch (error) {
     console.error("Error fetching settings:", error);
     res.status(500).send("Error fetching settings");
