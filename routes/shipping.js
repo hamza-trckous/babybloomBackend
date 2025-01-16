@@ -17,7 +17,8 @@ router.post("/create", async (req, res) => {
   try {
     const shippingPrices = req.body.shippingPrices.map((item) => ({
       wilayas: item.wilaya,
-      price: item.price,
+      priceToDesktop: item.priceToDesktop,
+      priceToHomme: item.priceToHomme,
     }));
     await Shipping.insertMany(shippingPrices);
     res
@@ -32,12 +33,17 @@ router.post("/create", async (req, res) => {
 // Update shipping price for a specific wilaya
 router.post("/update", async (req, res) => {
   try {
-    const { wilaya, price } = req.body;
+    const { wilaya, priceToDesktop, priceToHomme } = req.body;
     let shipping = await Shipping.findOne({ wilayas: wilaya });
     if (!shipping) {
-      shipping = new Shipping({ wilayas: wilaya, price });
+      shipping = new Shipping({
+        wilayas: wilaya,
+        priceToDesktop,
+        priceToHomme,
+      });
     } else {
-      shipping.price = price;
+      shipping.priceToDesktop = priceToDesktop;
+      shipping.priceToHomme = priceToHomme;
     }
     await shipping.save();
     res.status(200).json({ message: "Shipping price updated successfully" });

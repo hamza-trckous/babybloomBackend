@@ -65,7 +65,12 @@ const shippSchema = new mongoose.Schema({
       "El Menia",
     ],
   },
-  price: {
+  priceToDesktop: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  priceToHomme: {
     type: Number,
     required: true,
     min: 0,
