@@ -20,7 +20,7 @@ router.post("/track-conversion", async (req, res) => {
   try {
     const hashedUserData = {
       ...user_data,
-      em: hashEmail(user_data.em),
+      em: user_data.em ? hashEmail(user_data.em) : undefined,
     };
 
     const eventData = {
@@ -43,6 +43,7 @@ router.post("/track-conversion", async (req, res) => {
       `https://graph.facebook.com/${apiVersion}/${pixelId}/events?access_token=${accessToken}`,
       eventData
     );
+    console.log(eventData);
 
     res.status(200).send(response.data);
   } catch (error) {
