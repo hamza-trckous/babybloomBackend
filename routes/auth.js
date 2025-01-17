@@ -22,33 +22,34 @@ const getCookieConfig = () => ({
   maxAge: 3600000, // 1 hour
 });
 
-// Check authentication status
 router.get(
   "/check-auth",
   catchAsync(async (req, res) => {
-    const token = req.cookies.token;
-
-    if (!token) {
-      return res.status(200).json({
-        status: "success",
-        isAuthenticated: false,
-      });
-    }
-
     try {
+      // Check both cookie and Authorization header for token
+      const token =
+        req.cookies.token ||
+        (req.headers.authorization && req.headers.authorization.split(" ")[1]);
+
+      if (!token) {
+        return res.status(200).json({
+          status: "success",
+          isAuthenticated: false,
+          message: "No token provided",
+        });
+      }
+
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Find user
-      const user = await User.findById(decoded.id).select("-password");
+      const user = await User.findById(decoded.id).select("-password").lean(); // Use lean() for better performance
+
       if (!user) {
-        return res.status(200).json({
-          status: "success",
-          isAuthenticated: false,
-        });
+        throw new Error("User not found");
       }
 
-      // Refresh token if needed
+      // Token refresh logic
       const timeLeft = decoded.exp - Math.floor(Date.now() / 1000);
       if (timeLeft < 600) {
         // Less than 10 minutes left
@@ -61,13 +62,24 @@ router.get(
           process.env.JWT_SECRET,
           { expiresIn: "1h" }
         );
-        res.cookie("token", newToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === "production",
-          sameSite: "strict",
+
+        // Set new cookie with proper configuration
+        res.cookie("token", newToken, getCookieConfig(req));
+
+        // Include new token in response
+        return res.status(200).json({
+          status: "success",
+          isAuthenticated: true,
+          user: {
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          },
+          token: newToken, // Include new token in response
         });
       }
 
+      // Regular response
       return res.status(200).json({
         status: "success",
         isAuthenticated: true,
@@ -80,16 +92,13 @@ router.get(
     } catch (error) {
       console.error("Auth check error:", error);
 
-      // Clear invalid token
-      res.clearCookie("token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      });
+      // Clear invalid token with proper configuration
+      res.clearCookie("token", getCookieConfig(req));
 
       return res.status(200).json({
         status: "success",
         isAuthenticated: false,
+        message: "Invalid or expired token",
       });
     }
   })
