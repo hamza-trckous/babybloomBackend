@@ -22,60 +22,6 @@ const getCookieConfig = () => ({
   maxAge: 3600000, // 1 hour
 });
 
-// Login route
-router.post(
-  "/login",
-  catchAsync(async (req, res) => {
-    try {
-      // Validate request body
-      const { email, password } = loginSchema.parse(req.body);
-      console.log("Login attempt with email:", email);
-
-      // Find user
-      const user = await User.findOne({ email }).select("+password");
-      if (!user) {
-        console.log("User not found for email:", email);
-        throw new AuthenticationError("Invalid email or password");
-      }
-
-      // Verify password
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        console.log("Password mismatch for user:", user.email);
-        throw new AuthenticationError("Invalid email or password");
-      }
-
-      // Generate token
-      const token = jwt.sign(
-        {
-          id: user._id,
-          role: user.role,
-          email: user.email,
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: "1h" }
-      );
-
-      // Set cookie
-      res.cookie("token", token, getCookieConfig());
-
-      // Send response
-      res.status(200).json({
-        status: "success",
-        message: "Login successful",
-        user: {
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
-    }
-  })
-);
-
 // Check authentication status
 router.get(
   "/check-auth",
@@ -115,7 +61,11 @@ router.get(
           process.env.JWT_SECRET,
           { expiresIn: "1h" }
         );
-        res.cookie("token", newToken, getCookieConfig());
+        res.cookie("token", newToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "strict",
+        });
       }
 
       return res.status(200).json({
@@ -131,30 +81,16 @@ router.get(
       console.error("Auth check error:", error);
 
       // Clear invalid token
-      res.clearCookie("token", getCookieConfig());
+      res.clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+      });
 
       return res.status(200).json({
         status: "success",
         isAuthenticated: false,
       });
-    }
-  })
-);
-
-// Logout route
-router.post(
-  "/logout",
-  catchAsync(async (req, res) => {
-    try {
-      res.clearCookie("token", getCookieConfig());
-
-      res.status(200).json({
-        status: "success",
-        message: "Logout successful",
-      });
-    } catch (error) {
-      console.error("Logout error:", error);
-      throw error;
     }
   })
 );

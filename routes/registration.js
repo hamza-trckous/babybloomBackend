@@ -74,7 +74,11 @@ router.post(
       );
 
       // Set cookie
-      res.cookie("token", token, getCookieConfig());
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // استخدم https في بيئة الإنتاج
+        sameSite: "strict",
+      });
 
       // Send response
       res.status(201).json({
@@ -85,6 +89,7 @@ router.post(
           email: newUser.email,
           role: newUser.role,
         },
+        token,
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -98,30 +103,39 @@ router.post(
   "/login",
   catchAsync(async (req, res) => {
     try {
+      // Validate request body
       const { email, password } = loginSchema.parse(req.body);
+      console.log("Login attempt with email:", email);
 
       // Find user
-      const user = await User.findOne({ email });
+      const user = await User.findOne({ email }).select("+password");
       if (!user) {
+        console.log("User not found for email:", email);
         throw new AuthenticationError("Invalid email or password");
       }
-
       // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
+        console.log("Password mismatch for user:", user.email);
         throw new AuthenticationError("Invalid email or password");
       }
-
       // Generate token
       const token = jwt.sign(
-        { id: user._id, role: user.role },
+        {
+          id: user._id,
+          role: user.role,
+          email: user.email,
+        },
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );
 
       // Set cookie
-      res.cookie("token", token, getCookieConfig());
-
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production", // استخدم https في بيئة الإنتاج
+        sameSite: "strict",
+      });
       // Send response
       res.status(200).json({
         status: "success",
@@ -131,6 +145,7 @@ router.post(
           email: user.email,
           role: user.role,
         },
+        token,
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -138,7 +153,6 @@ router.post(
     }
   })
 );
-
 // Protected route example
 router.get(
   "/protected",
@@ -159,8 +173,9 @@ router.post(
   catchAsync(async (req, res) => {
     try {
       res.clearCookie("token", {
-        ...getCookieConfig(),
-        maxAge: 0,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
       });
 
       res.status(200).json({
@@ -171,23 +186,6 @@ router.post(
       console.error("Logout error:", error);
       throw error;
     }
-  })
-);
-
-// Check auth status route
-router.get(
-  "/check-auth",
-  auth,
-  catchAsync(async (req, res) => {
-    res.status(200).json({
-      status: "success",
-      isAuthenticated: true,
-      user: {
-        name: req.user.name,
-        email: req.user.email,
-        role: req.user.role,
-      },
-    });
   })
 );
 
