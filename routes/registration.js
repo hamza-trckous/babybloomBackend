@@ -76,8 +76,10 @@ router.post(
       // Set cookie
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // استخدم https في بيئة الإنتاج
-        sameSite: "strict",
+        secure: true,
+        sameSite: "none",
+        path: "/",
+        maxAge: 3600000, // 1 hour
       });
 
       // Send response
@@ -176,17 +178,22 @@ router.post(
     try {
       res.clearCookie("token", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: true,
+        sameSite: "none",
+        path: "/",
       });
 
+      // Clear token from localStorage if you're using it as fallback
       res.status(200).json({
         status: "success",
         message: "Logout successful",
       });
     } catch (error) {
       console.error("Logout error:", error);
-      throw error;
+      res.status(500).json({
+        status: "error",
+        message: "Logout failed",
+      });
     }
   })
 );
