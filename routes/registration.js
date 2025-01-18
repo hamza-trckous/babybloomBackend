@@ -113,14 +113,12 @@ router.post(
         console.log("User not found for email:", email);
         throw new AuthenticationError("Invalid email or password");
       }
-
       // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         console.log("Password mismatch for user:", user.email);
         throw new AuthenticationError("Invalid email or password");
       }
-
       // Generate token
       const token = jwt.sign(
         {
@@ -132,21 +130,12 @@ router.post(
         { expiresIn: "1h" }
       );
 
-      // Set cookie with correct configuration for Vercel deployment
+      // Set cookie
       res.cookie("token", token, {
         httpOnly: true,
-        secure: true, // Always true for production
-        sameSite: "none", // Required for cross-site deployment
-        path: "/",
-        maxAge: 3600000, // 1 hour in milliseconds
-        domain:
-          process.env.NODE_ENV === "production"
-            ? "frontend-babybloom.vercel.app"
-            : "localhost",
+        secure: process.env.NODE_ENV === "production", // استخدم https في بيئة الإنتاج
+        sameSite: "strict",
       });
-
-      console.log("Cookie set with token");
-
       // Send response
       res.status(200).json({
         status: "success",
@@ -156,6 +145,7 @@ router.post(
           email: user.email,
           role: user.role,
         },
+        token,
       });
     } catch (error) {
       console.error("Login error:", error);
