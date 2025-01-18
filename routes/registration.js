@@ -133,8 +133,10 @@ router.post(
       // Set cookie
       res.cookie("token", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // استخدم https في بيئة الإنتاج
-        sameSite: "strict",
+        secure: true,
+        sameSite: "none",
+        path: "/",
+        maxAge: 3600000, // 1 hour
       });
       // Send response
       res.status(200).json({
