@@ -62,8 +62,29 @@ const validateProduct = (req, res, next) => {
 // @access  Public
 router.get("/", async (req, res) => {
   try {
-    const products = await Product.find();
-    res.json(products);
+    const page = parseInt(req.query.page) || 1; // الصفحة الحالية
+    const limit = parseInt(req.query.limit) || 4; // عدد المنتجات في كل صفحة
+    const skip = (page - 1) * limit; // عدد المنتجات التي يجب تخطيها
+    const totalProducts = await Product.countDocuments(); // إجمالي عدد المنتجات
+
+    let products;
+
+    if (req.query.page && req.query.limit) {
+      // منطق جلب المنتجات مع التصفح (pagination)
+      products = await Product.find(
+        {},
+        "name rating price discountedPrice images reviews"
+      )
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+    } else {
+      // منطق جلب جميع المنتجات
+      products = await Product.find();
+    }
+
+    res.json({ products, totalProducts });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
