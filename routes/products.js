@@ -73,7 +73,7 @@ router.get("/", async (req, res) => {
       // منطق جلب المنتجات مع التصفح (pagination)
       products = await Product.find(
         {},
-        "name rating price discountedPrice images reviews"
+        "name rating price discountedPrice images reviews withShipping"
       )
         .sort({ _id: -1 })
         .skip(skip)
