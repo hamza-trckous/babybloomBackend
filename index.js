@@ -7,7 +7,6 @@ const bodyParser = require("body-parser");
 const helmet = require("helmet");
 const errorHandler = require("./middleware/errorHandler");
 const { AppError } = require("./utils/errors");
-
 // Import routes
 const authRoutes = require("./routes/auth");
 const registrationRoutes = require("./routes/registration");
@@ -21,6 +20,7 @@ const settingsRoutes = require("./routes/settings");
 const ipRoute = require("./routes/ip");
 const policiesRoutes = require("./routes/policys");
 const sheetsRoutes = require("./routes/sheets");
+const healthRoutes = require("./routes/health");
 
 dotenv.config();
 
@@ -128,6 +128,7 @@ app.use("/api", settingsRoutes);
 app.use("/api", ipRoute);
 app.use("/api", policiesRoutes);
 app.use("/api", sheetsRoutes);
+app.use("/api", healthRoutes);
 
 // Catch async errors
 const catchAsync = (fn) => {
