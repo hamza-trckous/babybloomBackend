@@ -112,6 +112,7 @@ router.post("/", validateProduct, async (req, res) => {
     images,
     withShipping,
     discountedPrice,
+    LandingPageContent,
   } = req.body;
 
   const product = new Product({
@@ -125,6 +126,7 @@ router.post("/", validateProduct, async (req, res) => {
     images,
     withShipping,
     discountedPrice,
+    LandingPageContent,
   });
 
   try {
@@ -219,5 +221,60 @@ async function getProduct(req, res, next) {
   res.product = product;
   next();
 }
+
+// Add new PATCH route for landing page updates
+router.patch("/:id/landing", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { LandingPageContent } = req.body;
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      { $push: { LandingPageContent } },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(updatedProduct);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+    console.log(err);
+  }
+});
+
+router.delete("/:id/landing/:index", async (req, res) => {
+  try {
+    const { id, index } = req.params;
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      {
+        $unset: { [`LandingPageContent.${index}`]: 1 },
+      },
+      { new: true }
+    );
+
+    // Remove null values from array
+    await Product.findByIdAndUpdate(
+      id,
+      {
+        $pull: { LandingPageContent: null },
+      },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json(updatedProduct);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+    console.log(err);
+  }
+});
 
 module.exports = router;

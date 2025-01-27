@@ -61,4 +61,25 @@ router.put("/:id", auth, authorize(["admin"]), async (req, res) => {
   }
 });
 
+router.delete("/:id", auth, authorize(["admin"]), async (req, res) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+    res.status(200).json({ message: "Order deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+router.delete("/", auth, authorize(["admin"]), async (req, res) => {
+  try {
+    await Order.deleteMany();
+    res.status(200).json({ message: "All orders deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 module.exports = router;

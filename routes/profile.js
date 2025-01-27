@@ -1,15 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const Setting = require("../models/Setting"); // Import the Setting model
+const profile = require("../models/profile");
 
-router.post("/settings", async (req, res) => {
-  const { pixelId, accessToken } = req.body;
-  console.log("pixelId", pixelId);
-  console.log("accessToken", accessToken);
+router.post("/profile", async (req, res) => {
+  const { logo, nameOfBrand } = req.body;
+  console.log("nameOfBrand", nameOfBrand);
+  console.log("logo", logo);
   try {
     // Update settings in MongoDB
     const settings = await Setting.findOneAndUpdate(
-      { pixelId, accessToken, lastUpdated: Date.now() },
+      {},
+      { logo, nameOfBrand, lastUpdated: Date.now() },
       { upsert: true, new: true }
     );
 
@@ -20,9 +22,9 @@ router.post("/settings", async (req, res) => {
   }
 });
 
-router.get("/settings", async (req, res) => {
+router.get("/profile", async (req, res) => {
   try {
-    const settings = await Setting.findOne({});
+    const settings = await profile.findOne({});
     if (!settings) {
       return res.status(404).send("Settings not found");
     }

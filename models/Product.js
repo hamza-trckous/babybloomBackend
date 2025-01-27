@@ -15,6 +15,17 @@ const reviewSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+const LandingPage = new mongoose.Schema({
+  title: {
+    type: String,
+  },
+  description: {
+    type: String,
+  },
+  image: {
+    type: String,
+  },
+});
 
 // Define Product schema
 const productSchema = new mongoose.Schema(
@@ -63,6 +74,9 @@ const productSchema = new mongoose.Schema(
       type: String,
       enum: ["نعم", "لا"],
       required: true,
+    },
+    LandingPageContent: {
+      type: [LandingPage],
     },
   },
   { timestamps: true }

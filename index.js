@@ -21,7 +21,7 @@ const ipRoute = require("./routes/ip");
 const policiesRoutes = require("./routes/policys");
 const sheetsRoutes = require("./routes/sheets");
 const healthRoutes = require("./routes/health");
-
+const profile = require("./routes/profile");
 dotenv.config();
 
 // Environment variables and constants
@@ -60,7 +60,7 @@ app.use(
       }
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Set-Cookie"],
   })
@@ -129,7 +129,7 @@ app.use("/api", ipRoute);
 app.use("/api", policiesRoutes);
 app.use("/api", sheetsRoutes);
 app.use("/api", healthRoutes);
-
+app.use("/api", profile);
 // Catch async errors
 const catchAsync = (fn) => {
   return (req, res, next) => {
