@@ -48,12 +48,11 @@ router.put("/policies/:id", async (req, res) => {
 // Delete a policy
 router.delete("/policies/:id", async (req, res) => {
   try {
-    const policy = await Policy.findById(req.params.id);
+    const policy = await Policy.findByIdAndDelete(req.params.id);
     if (!policy) {
       return res.status(404).json({ message: "Policy not found" });
     }
 
-    await policy.remove();
     res.json({ message: "Policy deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });

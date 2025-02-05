@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Product = require("../models/Product");
 const { z } = require("zod");
+const Category = require("../models/Categorys");
 
 // Define Zod schema for Product
 const reviewSchema = z.object({
@@ -40,6 +41,7 @@ const productSchema = z.object({
     .optional(),
   withShipping: z.string().optional(),
   discountedPrice: z.number().min(0).optional(),
+  category: z.string(),
 });
 
 // Middleware to validate request body
@@ -65,23 +67,34 @@ router.get("/", async (req, res) => {
     const page = parseInt(req.query.page) || 1; // الصفحة الحالية
     const limit = parseInt(req.query.limit) || 4; // عدد المنتجات في كل صفحة
     const skip = (page - 1) * limit; // عدد المنتجات التي يجب تخطيها
-    const totalProducts = await Product.countDocuments(); // إجمالي عدد المنتجات
-
+    const principalCategory = await Category.findOne({
+      name: "Principal Category",
+    });
+    if (!principalCategory) {
+      return res.status(404).json({ message: "Principal Category not found" });
+    }
     let products;
+    const totalProducts = await Product.countDocuments({
+      category: principalCategory._id,
+    }); // إجمالي عدد المنتجات
 
     if (req.query.page && req.query.limit) {
       // منطق جلب المنتجات مع التصفح (pagination)
       products = await Product.find(
-        {},
+        { category: principalCategory._id },
         "name rating price discountedPrice images reviews withShipping"
       )
+        .populate("category", "name description image")
         .sort({ _id: -1 })
         .skip(skip)
         .limit(limit)
         .lean();
     } else {
       // منطق جلب جميع المنتجات
-      products = await Product.find();
+      products = await Product.find({ category: principalCategory._id })
+        .populate("category", "name description image")
+        .sort({ _id: -1 })
+        .lean();
     }
 
     res.json({ products, totalProducts });
@@ -101,37 +114,48 @@ router.get("/:id", getProduct, (req, res) => {
 // @desc    Create a new product
 // @access  Public
 router.post("/", validateProduct, async (req, res) => {
-  const {
-    name,
-    description,
-    price,
-    colors,
-    sizes,
-    rating,
-    reviews,
-    images,
-    withShipping,
-    discountedPrice,
-    LandingPageContent,
-  } = req.body;
-
-  const product = new Product({
-    name,
-    description,
-    price,
-    colors,
-    sizes,
-    rating,
-    reviews,
-    images,
-    withShipping,
-    discountedPrice,
-    LandingPageContent,
-  });
-
   try {
+    const {
+      name,
+      description,
+      price,
+      colors,
+      sizes,
+      rating,
+      reviews,
+      images,
+      withShipping,
+      discountedPrice,
+      LandingPageContent,
+      category,
+    } = req.body;
+
+    const existingCategory = await Category.findById(category);
+    if (!existingCategory) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    const product = new Product({
+      name,
+      description,
+      price,
+      colors,
+      sizes,
+      rating,
+      reviews,
+      images,
+      withShipping,
+      discountedPrice,
+      LandingPageContent,
+      category,
+    });
+    existingCategory.products.push(product._id);
+    await existingCategory.save();
+
     const newProduct = await product.save();
-    res.status(201).json(newProduct);
+
+    const populatedProduct = await newProduct.populate("category");
+    res.status(201).json(populatedProduct);
   } catch (err) {
     res.status(400).json({ message: err.message });
     console.log(err);
@@ -153,6 +177,7 @@ router.put("/:id", getProduct, validateProduct, async (req, res) => {
     images,
     discountedPrice,
     withShipping,
+    category,
   } = req.body;
 
   if (name != null) {

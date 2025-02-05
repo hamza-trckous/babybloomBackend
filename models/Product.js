@@ -78,6 +78,11 @@ const productSchema = new mongoose.Schema(
     LandingPageContent: {
       type: [LandingPage],
     },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
   },
   { timestamps: true }
 );

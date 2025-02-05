@@ -22,6 +22,7 @@ const policiesRoutes = require("./routes/policys");
 const sheetsRoutes = require("./routes/sheets");
 const healthRoutes = require("./routes/health");
 const profile = require("./routes/profile");
+const categoriesRoutes = require("./routes/categorys");
 dotenv.config();
 
 // Environment variables and constants
@@ -61,7 +62,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
     exposedHeaders: ["Set-Cookie"],
   })
 );
@@ -105,8 +106,8 @@ app.use(
 );
 
 // Parse requests
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+app.use(bodyParser.json({ limit: "100mb" }));
+app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
 app.use(cookieParser());
 
 // Logging middleware
@@ -130,6 +131,7 @@ app.use("/api", policiesRoutes);
 app.use("/api", sheetsRoutes);
 app.use("/api", healthRoutes);
 app.use("/api", profile);
+app.use("/api/category", categoriesRoutes);
 // Catch async errors
 const catchAsync = (fn) => {
   return (req, res, next) => {
@@ -148,6 +150,8 @@ const connectDB = async (retries = 5) => {
     await mongoose.connect(mongoURI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+      socketTimeoutMS: 45000, // Increase socket timeout to 45 seconds
     });
     console.log("Connected to MongoDB");
   } catch (err) {
