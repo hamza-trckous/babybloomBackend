@@ -1,10 +1,11 @@
 const setLanguageAndColor = (req, res, next) => {
-  const langCookie = req.cookies.language;
+  const LangCookie = req.cookies.language;
   const ColorCookie = req.cookies.ColorText;
-  let lang = "AR";
+  let lang = "EN";
   let colo = "teal";
-  if (langCookie) {
-    lang = langCookie;
+  if (LangCookie) {
+    lang = LangCookie;
+    console.log(LangCookie);
   } else if (req.query.lang) {
     lang = req.query.lang;
   }
@@ -13,7 +14,7 @@ const setLanguageAndColor = (req, res, next) => {
   } else if (req.query.ColorText) {
     colo = req.query.ColorText;
   }
-  res.cookie("Language", lang, { maxAge: 900000, httpOnly: true });
+  res.cookie("language", lang, { maxAge: 900000 });
   // res.cookie("ColorText", colo, { maxAge: 900000, httpOnly: true });
 
   req.language = lang;
