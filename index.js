@@ -44,9 +44,9 @@ const cookieConfig = {
 
 // CORS Configuration
 const allowedOrigins = [
+  "https://vs-d9fwvjznu-hamza-trickings-projects.vercel.app",
   "http://localhost:3000",
-  "https://babybloom-dz.vercel.app",
-  "frontend-babybloom-qh13ipnkj-hamza-trickings-projects.vercel.app"
+  "https://babybloom-dz.vercel.app"
 ];
 
 // CORS middleware with debugging
@@ -92,7 +92,8 @@ app.use(
         "'self'",
         "*.facebook.com",
         "*.google-analytics.com",
-        "http://localhost:5000"
+        "http://localhost:5000",
+        " https://babybloombackend.onrender.com"
       ],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       styleSrc: ["'self'", "'unsafe-inline'"],
