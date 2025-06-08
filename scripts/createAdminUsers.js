@@ -19,10 +19,9 @@ if (!MONGO_URI) {
 mongoose
   .connect(MONGO_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true,
+    useUnifiedTopology: true
   })
   .then(() => {
-    console.log("Connected to MongoDB");
     createAdminUsers(); // Call the function to create admin users
   })
   .catch((error) => {
@@ -31,8 +30,6 @@ mongoose
 
 const createAdminUsers = async () => {
   try {
-    console.log("Connected to MongoDB 2");
-
     const adminUsers = [
       {
         username: "admin1",
@@ -40,7 +37,7 @@ const createAdminUsers = async () => {
         password: "admin123",
         role: "admin",
         name: "Admin",
-        lastname: "One",
+        lastname: "One"
       },
       {
         username: "admin2",
@@ -48,8 +45,8 @@ const createAdminUsers = async () => {
         password: "admin123",
         role: "admin",
         name: "Admin",
-        lastname: "Two",
-      },
+        lastname: "Two"
+      }
     ];
 
     for (const admin of adminUsers) {
@@ -58,21 +55,14 @@ const createAdminUsers = async () => {
         const hashedPassword = await bcrypt.hash(admin.password, 10);
         await User.create({
           ...admin,
-          password: hashedPassword,
+          password: hashedPassword
         });
-        console.log(
-          `Admin user ${admin.username} created with hashed password: ${hashedPassword}`
-        );
       } else {
-        console.log(`Admin user ${admin.username} already exists`);
       }
     }
 
     const allUsers = await User.find({ role: "admin" });
-    console.log("All admin users in the database:", allUsers);
-
     mongoose.connection.close(); // Close the connection after creating users
-    console.log("Connection to MongoDB closed");
   } catch (error) {
     console.error("Error creating admin users:", error);
   }

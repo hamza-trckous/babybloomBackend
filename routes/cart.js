@@ -56,7 +56,6 @@ router.get("/cart", auth, async (req, res) => {
     res.status(200).json({ cart: user.cart });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
-    console.log(error);
   }
 });
 

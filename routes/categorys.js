@@ -9,7 +9,7 @@ const Product = require("../models/Product");
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   description: z.string().min(1, "Category description is required"),
-  image: z.string(),
+  image: z.string()
 });
 
 // Middleware to validate request body
@@ -33,7 +33,7 @@ router.get("/", async (req, res) => {
   try {
     const categories = await Category.find().populate({
       path: "products",
-      select: "name rating price discountedPrice images reviews withShipping", // select the fields you want
+      select: "name rating price discountedPrice images reviews withShipping" // select the fields you want
     });
     res.status(200).json(categories);
   } catch (error) {
@@ -45,8 +45,6 @@ router.get("/", async (req, res) => {
 // @desc    Create a new category
 router.post("/", validateCategory, async (req, res) => {
   const { name, description, image } = req.body;
-  console.log("this is request for cat", req.body);
-
   try {
     const category = new Category({ name, description, image });
     await category.save();
@@ -60,8 +58,6 @@ router.post("/", validateCategory, async (req, res) => {
 // @desc    Delete a category
 router.delete("/:id", auth, authorize(["admin"]), async (req, res) => {
   const categoryId = req.params.id;
-  console.log("this is id", req.params.id);
-
   try {
     const category = await Category.findByIdAndDelete(categoryId);
     if (!category) {
@@ -71,7 +67,6 @@ router.delete("/:id", auth, authorize(["admin"]), async (req, res) => {
     res.status(200).json({ message: "Category deleted" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
-    console.log("this is error", error);
   }
 });
 

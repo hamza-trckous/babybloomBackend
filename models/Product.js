@@ -72,7 +72,7 @@ const productSchema = new mongoose.Schema(
     },
     withShipping: {
       type: String,
-      enum: ["نعم", "لا"],
+      enum: ["نعم", "لا", "yes", "no"],
       required: true,
     },
     LandingPageContent: {

@@ -18,7 +18,7 @@ router.post("/create", async (req, res) => {
     const shippingPrices = req.body.shippingPrices.map((item) => ({
       wilayas: item.wilaya,
       priceToDesktop: item.priceToDesktop,
-      priceToHomme: item.priceToHomme,
+      priceToHomme: item.priceToHomme
     }));
     await Shipping.insertMany(shippingPrices);
     res
@@ -26,7 +26,6 @@ router.post("/create", async (req, res) => {
       .json({ message: "Initial shipping prices created successfully" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
-    console.log(error);
   }
 });
 
@@ -39,7 +38,7 @@ router.post("/update", async (req, res) => {
       shipping = new Shipping({
         wilayas: wilaya,
         priceToDesktop,
-        priceToHomme,
+        priceToHomme
       });
     } else {
       shipping.priceToDesktop = priceToDesktop;

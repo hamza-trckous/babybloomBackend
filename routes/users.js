@@ -26,4 +26,13 @@ router.delete("/:id", auth, authorize(["admin"]), async (req, res) => {
   }
 });
 
+router.get("/:id", auth, authorize(["admin"]), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).populate("cart.productId");
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 module.exports = router;

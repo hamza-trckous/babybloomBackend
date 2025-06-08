@@ -4,21 +4,21 @@ const categorySchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true,
+    trim: true
   },
   description: {
-    type: String,
+    type: String
   },
   image: {
     type: String,
-    required: true,
+    required: true
   },
   products: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-    },
-  ],
+      ref: "Product"
+    }
+  ]
 });
 
 const Category = mongoose.model("Category", categorySchema);

@@ -10,7 +10,6 @@ router.get("/get-ip", (req, res) => {
     clientIp = "0.0.0.0"; // Replace with a placeholder or skip sending this field
   }
 
-  console.log("Client IP Address:", clientIp);
   res.status(200).json({ ip: clientIp });
 });
 

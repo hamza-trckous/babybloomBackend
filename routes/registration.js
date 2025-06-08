@@ -16,12 +16,12 @@ const registerSchema = z.object({
   username: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(6),
-  placeofbirth: z.string().optional(),
+  placeofbirth: z.string().optional()
 });
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(6)
 });
 
 // Cookie configuration
@@ -30,7 +30,7 @@ const getCookieConfig = () => ({
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   path: "/",
-  maxAge: 3600000, // 1 hour
+  maxAge: 3600000 // 1 hour
 });
 
 // Registration route
@@ -43,7 +43,7 @@ router.post(
 
       // Check for existing user
       const existingUser = await User.findOne({
-        $or: [{ username }, { email }],
+        $or: [{ username }, { email }]
       });
       if (existingUser) {
         throw new ValidationError("Username or email already exists");
@@ -61,7 +61,7 @@ router.post(
         password: hashedPassword,
         dateOfbirth: req.body.dateOfbirth,
         placeofbirth: req.body.placeofbirth,
-        role: "user",
+        role: "user"
       });
 
       await newUser.save();
@@ -79,7 +79,7 @@ router.post(
         secure: true,
         sameSite: "none",
         path: "/",
-        maxAge: 3600000, // 1 hour
+        maxAge: 3600000 // 1 hour
       });
 
       // Send response
@@ -89,9 +89,9 @@ router.post(
         user: {
           name: newUser.name,
           email: newUser.email,
-          role: newUser.role,
+          role: newUser.role
         },
-        token,
+        token
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -107,18 +107,14 @@ router.post(
     try {
       // Validate request body
       const { email, password } = loginSchema.parse(req.body);
-      console.log("Login attempt with email:", email);
-
       // Find user
       const user = await User.findOne({ email }).select("+password");
       if (!user) {
-        console.log("User not found for email:", email);
         throw new AuthenticationError("Invalid email or password");
       }
       // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
-        console.log("Password mismatch for user:", user.email);
         throw new AuthenticationError("Invalid email or password");
       }
       // Generate token
@@ -126,7 +122,7 @@ router.post(
         {
           id: user._id,
           role: user.role,
-          email: user.email,
+          email: user.email
         },
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
@@ -138,7 +134,7 @@ router.post(
         secure: true,
         sameSite: "none",
         path: "/",
-        maxAge: 3600000, // 1 hour
+        maxAge: 3600000 // 1 hour
       });
       // Send response
       res.status(200).json({
@@ -147,9 +143,9 @@ router.post(
         user: {
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.role
         },
-        token,
+        token
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -166,7 +162,7 @@ router.get(
     res.status(200).json({
       status: "success",
       message: "This is a protected route",
-      user: req.user,
+      user: req.user
     });
   })
 );
@@ -180,19 +176,19 @@ router.post(
         httpOnly: true,
         secure: true,
         sameSite: "none",
-        path: "/",
+        path: "/"
       });
 
       // Clear token from localStorage if you're using it as fallback
       res.status(200).json({
         status: "success",
-        message: "Logout successful",
+        message: "Logout successful"
       });
     } catch (error) {
       console.error("Logout error:", error);
       res.status(500).json({
         status: "error",
-        message: "Logout failed",
+        message: "Logout failed"
       });
     }
   })

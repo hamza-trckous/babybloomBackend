@@ -17,7 +17,7 @@ const reviewSchema = z.object({
         )
         .or(z.string().url())
     )
-    .optional(),
+    .optional()
 });
 
 const productSchema = z.object({
@@ -41,7 +41,7 @@ const productSchema = z.object({
     .optional(),
   withShipping: z.string().optional(),
   discountedPrice: z.number().min(0).optional(),
-  category: z.string(),
+  category: z.string()
 });
 
 // Middleware to validate request body
@@ -67,15 +67,21 @@ router.get("/", async (req, res) => {
     const page = parseInt(req.query.page) || 1; // الصفحة الحالية
     const limit = parseInt(req.query.limit) || 4; // عدد المنتجات في كل صفحة
     const skip = (page - 1) * limit; // عدد المنتجات التي يجب تخطيها
-    const principalCategory = await Category.findOne({
-      name: "Principal Category",
+    let principalCategory = await Category.findOne({
+      name: "Principal Category"
     });
+
     if (!principalCategory) {
-      return res.status(404).json({ message: "Principal Category not found" });
+      principalCategory = await Category.create({
+        name: "Principal Category",
+        description: "Default principal category",
+        image: "/default-image-url-or-path.jpg",
+        products: []
+      });
     }
     let products;
     const totalProducts = await Product.countDocuments({
-      category: principalCategory._id,
+      category: principalCategory._id
     }); // إجمالي عدد المنتجات
 
     if (req.query.page && req.query.limit) {
@@ -99,6 +105,7 @@ router.get("/", async (req, res) => {
 
     res.json({ products, totalProducts });
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -127,7 +134,7 @@ router.post("/", validateProduct, async (req, res) => {
       withShipping,
       discountedPrice,
       LandingPageContent,
-      category,
+      category
     } = req.body;
 
     const existingCategory = await Category.findById(category);
@@ -147,7 +154,7 @@ router.post("/", validateProduct, async (req, res) => {
       withShipping,
       discountedPrice,
       LandingPageContent,
-      category,
+      category
     });
     existingCategory.products.push(product._id);
     await existingCategory.save();
@@ -158,7 +165,6 @@ router.post("/", validateProduct, async (req, res) => {
     res.status(201).json(populatedProduct);
   } catch (err) {
     res.status(400).json({ message: err.message });
-    console.log(err);
   }
 });
 
@@ -177,7 +183,7 @@ router.put("/:id", getProduct, validateProduct, async (req, res) => {
     images,
     discountedPrice,
     withShipping,
-    category,
+    category
   } = req.body;
 
   if (name != null) {
@@ -240,6 +246,7 @@ async function getProduct(req, res, next) {
       return res.status(404).json({ message: "Cannot find product" });
     }
   } catch (err) {
+    console.log(err);
     return res.status(500).json({ message: err.message });
   }
 
@@ -266,7 +273,6 @@ router.patch("/:id/landing", async (req, res) => {
     res.json(updatedProduct);
   } catch (err) {
     res.status(400).json({ message: err.message });
-    console.log(err);
   }
 });
 
@@ -277,7 +283,7 @@ router.delete("/:id/landing/:index", async (req, res) => {
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
       {
-        $unset: { [`LandingPageContent.${index}`]: 1 },
+        $unset: { [`LandingPageContent.${index}`]: 1 }
       },
       { new: true }
     );
@@ -286,7 +292,7 @@ router.delete("/:id/landing/:index", async (req, res) => {
     await Product.findByIdAndUpdate(
       id,
       {
-        $pull: { LandingPageContent: null },
+        $pull: { LandingPageContent: null }
       },
       { new: true }
     );
@@ -298,7 +304,6 @@ router.delete("/:id/landing/:index", async (req, res) => {
     res.json(updatedProduct);
   } catch (err) {
     res.status(400).json({ message: err.message });
-    console.log(err);
   }
 });
 

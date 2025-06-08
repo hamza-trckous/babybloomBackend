@@ -23,6 +23,8 @@ const sheetsRoutes = require("./routes/sheets");
 const healthRoutes = require("./routes/health");
 const profile = require("./routes/profile");
 const categoriesRoutes = require("./routes/categorys");
+const setLanguageAndColor = require("./middleware/languageANdColorThemDetect");
+const { getTranslation } = require("./routes/langController");
 dotenv.config();
 
 // Environment variables and constants
@@ -37,33 +39,30 @@ const cookieConfig = {
   secure: isProduction,
   sameSite: isProduction ? "none" : "lax",
   maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  path: "/",
+  path: "/"
 };
 
 // CORS Configuration
 const allowedOrigins = [
   "http://localhost:3000",
   "https://babybloom-dz.vercel.app",
-  "frontend-babybloom-qh13ipnkj-hamza-trickings-projects.vercel.app",
+  "frontend-babybloom-qh13ipnkj-hamza-trickings-projects.vercel.app"
 ];
 
 // CORS middleware with debugging
 app.use(
   cors({
     origin: function (origin, callback) {
-      console.log("Request Origin:", origin);
-
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        console.log("Origin blocked:", origin);
         callback(new Error(`Origin ${origin} not allowed by CORS`));
       }
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
-    exposedHeaders: ["Set-Cookie"],
+    exposedHeaders: ["Set-Cookie"]
   })
 );
 
@@ -87,21 +86,21 @@ app.use(
         "*.google.com",
         "https://gw.conversionsapigateway.com",
         "blob:",
-        "data:",
+        "data:"
       ],
       connectSrc: [
         "'self'",
         "*.facebook.com",
         "*.google-analytics.com",
-        "http://localhost:5000",
+        "http://localhost:5000"
       ],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       fontSrc: ["'self'", "data:", "*.gstatic.com"], // Allow fonts from data URIs and gstatic.com
       frameSrc: ["'self'", "*.facebook.com"],
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
-    },
+      upgradeInsecureRequests: []
+    }
   })
 );
 
@@ -112,11 +111,13 @@ app.use(cookieParser());
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
   next();
 });
 
 // Routes
+app.get("/api/translate", getTranslation);
+
+app.use(setLanguageAndColor);
 app.use("/api", registrationRoutes);
 app.use("/api", authRoutes);
 app.use("/api/products", productsRoutes);
@@ -132,6 +133,7 @@ app.use("/api", sheetsRoutes);
 app.use("/api", healthRoutes);
 app.use("/api", profile);
 app.use("/api/category", categoriesRoutes);
+
 // Catch async errors
 const catchAsync = (fn) => {
   return (req, res, next) => {
@@ -147,19 +149,16 @@ if (!process.env.JWT_SECRET) {
 // MongoDB connection with retry logic
 const connectDB = async (retries = 5) => {
   try {
+    console.log("start");
     await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-      socketTimeoutMS: 45000, // Increase socket timeout to 45 seconds
+      socketTimeoutMS: 45000 // Increase socket timeout to 45 seconds
     });
-    console.log("Connected to MongoDB");
   } catch (err) {
     if (retries === 0) {
       console.error("Database connection failed:", err.message);
       process.exit(1);
     }
-    console.log(`Retrying connection... (${retries} attempts remaining)`);
     setTimeout(() => connectDB(retries - 1), 5000);
   }
 };
@@ -184,13 +183,13 @@ app.use((err, req, res, next) => {
   console.error("Error:", {
     name: err.name,
     message: err.message,
-    stack: isProduction ? undefined : err.stack,
+    stack: isProduction ? undefined : err.stack
   });
 
   if (err.message.includes("not allowed by CORS")) {
     return res.status(403).json({
       status: "error",
-      message: "CORS error: Origin not allowed",
+      message: "CORS error: Origin not allowed"
     });
   }
 
@@ -199,7 +198,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 const server = app.listen(port, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${port}`);
+  console.log(`🚀 Server is running on port ${port}`);
 });
 
 // Handle unhandled promise rejections
@@ -220,9 +219,7 @@ process.on("uncaughtException", (err) => {
 
 // Graceful shutdown
 process.on("SIGTERM", () => {
-  console.log("SIGTERM received. Shutting down gracefully");
   server.close(() => {
-    console.log("Process terminated");
     mongoose.connection.close(false, () => {
       process.exit(0);
     });

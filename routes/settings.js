@@ -4,8 +4,6 @@ const Setting = require("../models/Setting"); // Import the Setting model
 
 router.post("/settings", async (req, res) => {
   const { pixelId, accessToken } = req.body;
-  console.log("pixelId", pixelId);
-  console.log("accessToken", accessToken);
   try {
     // Update settings in MongoDB
     const settings = await Setting.findOneAndUpdate(

@@ -20,7 +20,7 @@ router.post("/track-conversion", async (req, res) => {
   try {
     const hashedUserData = {
       ...user_data,
-      em: user_data.em ? hashEmail(user_data.em) : undefined,
+      em: user_data.em ? hashEmail(user_data.em) : undefined
     };
 
     const eventData = {
@@ -29,22 +29,15 @@ router.post("/track-conversion", async (req, res) => {
           event_name,
           event_time,
           user_data: hashedUserData,
-          custom_data,
-        },
-      ],
+          custom_data
+        }
+      ]
     };
-
-    console.log(
-      "Sending event data to Facebook:",
-      JSON.stringify(eventData, null, 2)
-    );
 
     const response = await axios.post(
       `https://graph.facebook.com/${apiVersion}/${pixelId}/events?access_token=${accessToken}`,
       eventData
     );
-    console.log(eventData);
-
     res.status(200).send(response.data);
   } catch (error) {
     console.error(
@@ -53,7 +46,7 @@ router.post("/track-conversion", async (req, res) => {
     );
     res.status(500).send({
       message: "Error sending conversion event",
-      error: error.response?.data || error.message,
+      error: error.response?.data || error.message
     });
   }
 });

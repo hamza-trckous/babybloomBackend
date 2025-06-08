@@ -14,7 +14,7 @@ router.post("/", async (req, res) => {
       address,
       products,
       totalAmount,
-      name, // Add name to orderData
+      name // Add name to orderData
     };
 
     // Check if user is authenticated
@@ -32,7 +32,6 @@ router.post("/", async (req, res) => {
     res.status(201).json(order);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
-    console.log(error);
   }
 });
 
