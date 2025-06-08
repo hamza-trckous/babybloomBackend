@@ -46,7 +46,8 @@ const cookieConfig = {
 const allowedOrigins = [
   "https://vs-d9fwvjznu-hamza-trickings-projects.vercel.app",
   "http://localhost:3000",
-  "https://babybloom-dz.vercel.app"
+  "https://babybloom-dz.vercel.app",
+  "https://vs-6l3or02ih-hamza-trickings-projects.vercel.app"
 ];
 
 // CORS middleware with debugging
