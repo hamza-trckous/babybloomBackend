@@ -152,16 +152,25 @@ if (!process.env.JWT_SECRET) {
 // MongoDB connection with retry logic
 const connectDB = async (retries = 5) => {
   try {
-    console.log("start");
+    console.log("🟡 Attempting MongoDB connection...");
+
     await mongoose.connect(mongoURI, {
-      serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-      socketTimeoutMS: 45000 // Increase socket timeout to 45 seconds
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000, // 30s to try finding MongoDB server
+      socketTimeoutMS: 45000 // 45s socket timeout
     });
+
+    console.log("✅ MongoDB Connected!");
   } catch (err) {
+    console.error(`❌ MongoDB connection error: ${err.message}`);
+
     if (retries === 0) {
-      console.error("Database connection failed:", err.message);
+      console.error("❌ All retry attempts failed. Exiting.");
       process.exit(1);
     }
+
+    console.log(`🔁 Retrying in 5s... (${retries} retries left)`);
     setTimeout(() => connectDB(retries - 1), 5000);
   }
 };
