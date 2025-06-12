@@ -64,21 +64,23 @@ const validateProduct = (req, res, next) => {
 // @access  Public
 router.get("/", async (req, res) => {
   try {
+    const category = req.query.category;
+    console.log(category);
     const page = parseInt(req.query.page) || 1; // الصفحة الحالية
     const limit = parseInt(req.query.limit) || 4; // عدد المنتجات في كل صفحة
     const skip = (page - 1) * limit; // عدد المنتجات التي يجب تخطيها
     let principalCategory = await Category.findOne({
       name: "Principal Category"
     });
-
     if (!principalCategory) {
       principalCategory = await Category.create({
         name: "Principal Category",
         description: "Default principal category",
-        image: "/default-image-url-or-path.jpg",
+        image: "/téléchargement (4).jpeg",
         products: []
       });
     }
+
     let products;
     const totalProducts = await Product.countDocuments({
       category: principalCategory._id
@@ -86,10 +88,7 @@ router.get("/", async (req, res) => {
 
     if (req.query.page && req.query.limit) {
       // منطق جلب المنتجات مع التصفح (pagination)
-      products = await Product.find(
-        { category: principalCategory._id },
-        "name rating price discountedPrice images reviews withShipping"
-      )
+      products = await Product.find({ category: principalCategory._id })
         .populate("category", "name description image")
         .sort({ _id: -1 })
         .skip(skip)
@@ -164,6 +163,7 @@ router.post("/", validateProduct, async (req, res) => {
     const populatedProduct = await newProduct.populate("category");
     res.status(201).json(populatedProduct);
   } catch (err) {
+    console.log(err);
     res.status(400).json({ message: err.message });
   }
 });

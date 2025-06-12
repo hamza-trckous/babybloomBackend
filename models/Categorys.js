@@ -6,8 +6,14 @@ const categorySchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+
   description: {
     type: String
+  },
+  showing: {
+    type: Boolean,
+    required: false,
+    default: false
   },
   image: {
     type: String,

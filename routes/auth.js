@@ -32,8 +32,8 @@ router.get(
         (req.headers.authorization && req.headers.authorization.split(" ")[1]);
 
       if (!token) {
-        return res.status(200).json({
-          status: "success",
+        return res.status(401).json({
+          status: "fail",
           isAuthenticated: false,
           message: "No token provided"
         });
@@ -68,7 +68,7 @@ router.get(
             email: user.email
           },
           process.env.JWT_SECRET,
-          { expiresIn: "1h" }
+          { expiresIn: "5m" }
         );
 
         res.cookie("token", newToken, getCookieConfig(req));
@@ -107,8 +107,8 @@ router.get(
       // Clear invalid token with proper configuration
       const { maxAge, ...cookieConfig } = getCookieConfig(req);
       res.clearCookie("token", cookieConfig);
-      return res.status(200).json({
-        status: "success",
+      return res.status(401).json({
+        status: "fail",
         isAuthenticated: false,
         message: "Invalid or expired token"
       });

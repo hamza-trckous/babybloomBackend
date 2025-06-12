@@ -109,6 +109,9 @@
     "PrincipalCategory": "الفئات"
   },
   "addingProduct": {
+    "addCategoryPart": " إضافة الفئات",
+    "addCategory": "إضافة الفئة",
+
     "addProductTitle": "إضافة المنتجات",
     "addProductButton": "إضافة المنتج",
     "manageProducts": "إدارة المنتجات",
@@ -151,6 +154,8 @@
     "Huge": "ضخم"
   },
   "table": {
+    "photos": "الصور",
+
     "productImages": "صور المنتج",
     "productName": "اسم المنتج",
     "description": "الوصف",
@@ -186,5 +191,6 @@
   "CardPreview": {
     "AddToCard": "أضف إلى السلة",
     "pageOfProduct": "  صفحة المنتج"
-  }
+  },
+  "tableCategory": {}
 }

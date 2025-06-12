@@ -110,14 +110,19 @@
     "PrincipalCategory": "categories"
   },
   "addingProduct": {
+    "addCategoryPart": "adding Category",
+    "addCategory": "add Category",
+
     "addProductTitle": "Add Product",
     "addProductButton": "Add Product",
     "manageProducts": "Manage Products",
     "categoryTitle": "Category",
     "successCreate": "Product added successfully!",
     "errorCreate": "An error occurred while adding the product.",
-    "No": "No",
+    "no": "no",
     "requiredCategory": "Main category is required",
+    "requiredShipping": "Shipping is required",
+
     "principalCategory": "Main Category",
     "product": "Product",
     "addingPhoto": "Add Photos",
@@ -127,7 +132,7 @@
     "da": "DA",
     "withshipping": "Includes Shipping?",
     "choise": "Choose",
-    "yes ": "Yes",
+    "yes": "yes",
     "description": "Product Description",
     "addingName": "Name of product",
     "Red": "Red",
@@ -166,7 +171,8 @@
     "update": " update",
     "pageProduct": "  page ",
     "Showmore": "Show more",
-    "Showless": "Show less"
+    "Showless": "Show less",
+    "photos": "photos"
   },
   "orderForm": {
     "form_title": "Product Order",
