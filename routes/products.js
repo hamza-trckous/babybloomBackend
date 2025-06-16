@@ -58,6 +58,70 @@ const validateProduct = (req, res, next) => {
     return res.status(500).json({ message: "Server Error" });
   }
 };
+// filtred:/
+router.get("/filter", async (req, res) => {
+  try {
+    const { category, color, size, minPrice, maxPrice, rating, withShipping } =
+      req.query;
+
+    // Get category ID from name if category is provided
+    let categoryFilter = {};
+    if (category) {
+      const categoryDoc = await Category.findOne({ name: category });
+      if (categoryDoc) {
+        categoryFilter.category = categoryDoc._id;
+      }
+    }
+
+    const filter = {
+      ...categoryFilter
+    };
+
+    if (color) {
+      const colorArray = color.split(",").map((c) => new RegExp(c, "i"));
+      filter.colors = { $in: colorArray };
+    }
+
+    if (size) {
+      filter.sizes = { $in: size.split(",") };
+    }
+
+    if (minPrice) {
+      filter.discountedPrice = { $gte: parseFloat(minPrice) };
+    }
+
+    if (maxPrice) {
+      filter.discountedPrice = {
+        ...filter.discountedPrice,
+        $lte: parseFloat(maxPrice)
+      };
+    }
+
+    if (rating) {
+      filter.rating = { $gte: parseFloat(rating) };
+    }
+
+    // ✅ Correct shipping filter based on enum
+    if (withShipping) {
+      const lower = withShipping.toLowerCase();
+      if (lower === "yes" || lower === "نعم") {
+        filter.withShipping = { $in: ["yes", "نعم"] };
+      } else if (lower === "no" || lower === "لا") {
+        filter.withShipping = { $in: ["no", "لا"] };
+      }
+    }
+
+    const products = await Product.find(filter)
+      .populate("category", "name description image")
+      .sort({ _id: -1 })
+      .lean();
+
+    res.json(products);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // @route   GET /api/products
 // @desc    Get all products
