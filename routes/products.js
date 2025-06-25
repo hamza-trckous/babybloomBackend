@@ -3,6 +3,7 @@ const router = express.Router();
 const Product = require("../models/Product");
 const { z } = require("zod");
 const Category = require("../models/Categorys");
+const uploadToCloudinary = require("../utils/uploadToCloudinary");
 
 // Define Zod schema for Product
 const reviewSchema = z.object({
@@ -199,7 +200,22 @@ router.post("/", validateProduct, async (req, res) => {
       LandingPageContent,
       category
     } = req.body;
+    console.log(reviews);
 
+    const imageUrl = await uploadToCloudinary(images);
+    const uploadedReviews = await Promise.all(
+      (reviews || []).map(async (review) => {
+        const uploadedImages = await Promise.all(
+          (review.images || []).map(
+            async (img) => await uploadToCloudinary(img)
+          )
+        );
+        return {
+          text: review.text,
+          images: uploadedImages
+        };
+      })
+    );
     const existingCategory = await Category.findById(category);
     if (!existingCategory) {
       return res.status(404).json({ message: "Category not found" });
@@ -212,8 +228,8 @@ router.post("/", validateProduct, async (req, res) => {
       colors,
       sizes,
       rating,
-      reviews,
-      images,
+      reviews: uploadedReviews,
+      images: imageUrl,
       withShipping,
       discountedPrice,
       LandingPageContent,
@@ -269,10 +285,24 @@ router.put("/:id", getProduct, validateProduct, async (req, res) => {
     res.product.rating = rating;
   }
   if (reviews != null) {
-    res.product.reviews = reviews;
+    const uploadedReviews = await Promise.all(
+      (reviews || []).map(async (review) => {
+        const uploadedImages = await Promise.all(
+          (review.images || []).map(
+            async (img) => await uploadToCloudinary(img)
+          )
+        );
+        return {
+          text: review.text,
+          images: uploadedImages
+        };
+      })
+    );
+    res.product.reviews = uploadedReviews;
   }
   if (images != null) {
-    res.product.images = images;
+    const uploaded = await uploadToCloudinary(images);
+    res.product.images = uploaded;
   }
   if (discountedPrice != null) {
     res.product.discountedPrice = discountedPrice;

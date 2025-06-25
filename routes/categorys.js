@@ -4,6 +4,7 @@ const Category = require("../models/Categorys");
 const { z } = require("zod");
 const { auth, authorize } = require("../middleware/auth");
 const Product = require("../models/Product");
+const uploadToCloudinary = require("../utils/uploadToCloudinary");
 
 // Define Zod schema for Category
 const categorySchema = z.object({
@@ -65,7 +66,13 @@ router.post(
   async (req, res) => {
     const { name, description, image, showing } = req.body;
     try {
-      const category = new Category({ name, description, image, showing });
+      const imageUrl = await uploadToCloudinary(image);
+      const category = new Category({
+        name,
+        description,
+        image: imageUrl,
+        showing
+      });
       await category.save();
       res.status(201).json(category);
     } catch (error) {
@@ -104,7 +111,14 @@ router.patch("/:id", auth, authorize(["admin"]), async (req, res) => {
     }
     if (name !== undefined) category.name = name;
     if (description !== undefined) category.description = description;
-    if (image !== undefined) category.image = image;
+    if (image !== undefined) {
+      if (image.startsWith("data:image") || image.startsWith("blob:")) {
+        const uploadedImage = await uploadToCloudinary(image);
+        category.image = uploadedImage;
+      } else {
+        category.image = image;
+      }
+    }
     if (showing !== undefined) category.showing = showing;
 
     await category.save();
