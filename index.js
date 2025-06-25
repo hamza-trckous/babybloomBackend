@@ -154,13 +154,7 @@ if (!process.env.JWT_SECRET) {
 const connectDB = async (retries = 5) => {
   try {
     console.log("🟡 Attempting MongoDB connection...");
-
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000, // 30s to try finding MongoDB server
-      socketTimeoutMS: 45000 // 45s socket timeout
-    });
+    await mongoose.connect(mongoURI);
 
     console.log("✅ MongoDB Connected!");
   } catch (err) {
@@ -231,11 +225,10 @@ process.on("uncaughtException", (err) => {
 });
 
 // Graceful shutdown
-process.on("SIGTERM", () => {
+process.on("SIGTERM", async () => {
+  await mongoose.connection.close();
   server.close(() => {
-    mongoose.connection.close(false, () => {
-      process.exit(0);
-    });
+    process.exit(0);
   });
 });
 
