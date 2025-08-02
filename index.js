@@ -3,8 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require("cookie-parser");
-const bodyParser = require("body-parser");
 const helmet = require("helmet");
+const hpp = require("hpp");
+
 const errorHandler = require("./middleware/errorHandler");
 const { AppError } = require("./utils/errors");
 // Import routes
@@ -34,16 +35,19 @@ const port = process.env.PORT || 5000;
 const app = express();
 
 // Cookie configuration
-const cookieConfig = {
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? "none" : "lax",
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  path: "/"
-};
+// const cookieConfig = {
+//   httpOnly: true,
+//   secure: isProduction,
+//   sameSite: isProduction ? "none" : "lax",
+//   maxAge: 24 * 60 * 60 * 1000,
+//   path: "/"
+// };
 
 // CORS Configuration
 const allowedOrigins = [
+  "http://localhost",
+  "http://192.168.1.7:3000",
+  "http://127.0.0.1:3000",
   "http://localhost:3000",
   "https://babybloom-dz.vercel.app",
   "https://vs-ebon.vercel.app",
@@ -64,14 +68,26 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
-    exposedHeaders: ["Set-Cookie"]
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cache-Control",
+      "X-CSRF-Token",
+      "x-csrf-token",
+      "X-XSRF-TOKEN",
+      "XSRF-TOKEN"
+    ]
   })
 );
 
 // Security middleware
-app.use(helmet());
+app.use(hpp());
 
+app.use(helmet());
+app.use((req, res, next) => {
+  res.setHeader("Vary", "Origin");
+  next();
+});
 // Custom CSP configuration
 app.use(
   helmet.contentSecurityPolicy({
@@ -96,6 +112,7 @@ app.use(
         "*.facebook.com",
         "*.google-analytics.com",
         "http://localhost:5000",
+        "http://127.0.0.1:5000",
         " https://babybloombackend.onrender.com"
       ],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
@@ -109,8 +126,8 @@ app.use(
 );
 
 // Parse requests
-app.use(bodyParser.json({ limit: "100mb" }));
-app.use(bodyParser.urlencoded({ limit: "100mb", extended: true }));
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use(cookieParser());
 
 // Logging middleware
@@ -204,7 +221,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const server = app.listen(port, () => {
+const server = app.listen(port, "0.0.0.0", () => {
   console.log(`🚀 Server is running on port ${port}`);
 });
 

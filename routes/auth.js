@@ -6,6 +6,7 @@ const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 const catchAsync = require("../utils/catchAsync");
 const { AuthenticationError } = require("../utils/errors");
+const csrfProtection = require("../middleware/csrf");
 
 // Validation schemas
 const loginSchema = z.object({
@@ -17,7 +18,7 @@ const loginSchema = z.object({
 const getCookieConfig = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  sameSite: "lax",
   path: "/",
   maxAge: 3600000 // 1 hour
 });
@@ -58,6 +59,7 @@ router.get(
       // Check if near expiration (refresh condition)
       const timeLeft = decoded.exp - now;
       if (timeLeft < 600) {
+        console.log("make it new now ");
         const user = await User.findById(decoded.id).select("-password").lean();
         if (!user) throw new Error("User not found");
 
@@ -68,7 +70,7 @@ router.get(
             email: user.email
           },
           process.env.JWT_SECRET,
-          { expiresIn: "5m" }
+          { expiresIn: "1h" }
         );
 
         res.cookie("token", newToken, getCookieConfig(req));
@@ -103,6 +105,7 @@ router.get(
       });
     } catch (error) {
       console.error("Auth check error:", error);
+      console.log("dealeting coockies");
 
       // Clear invalid token with proper configuration
       const { maxAge, ...cookieConfig } = getCookieConfig(req);
@@ -133,5 +136,9 @@ router.get(
     }
   })
 );
+
+router.get("/csrf-token", csrfProtection, (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
 
 module.exports = router;

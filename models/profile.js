@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
-
+const AccountSchema = new mongoose.Schema({
+  name: { type: String, required: false, default: "DefaultEmail@email.com" },
+  enable: { type: Boolean, required: false, default: true }
+});
 const settingSchema = new mongoose.Schema({
   logo: {
     src: { type: String, required: true },
@@ -26,6 +29,12 @@ const settingSchema = new mongoose.Schema({
   },
   category: {
     enable: { type: Boolean, required: false, default: true }
+  },
+  email: {
+    type: AccountSchema
+  },
+  accounts: {
+    type: [AccountSchema]
   },
 
   lastUpdated: { type: Date, default: Date.now }

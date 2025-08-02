@@ -3,60 +3,68 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: true
   },
   lastname: {
     type: String,
-    required: true,
+    required: true
   },
   dateOfbirth: {
-    type: Date,
+    type: Date
   },
   placeofbirth: {
-    type: String,
+    type: String
   },
   username: {
     type: String,
     required: true,
-    unique: true,
+    unique: true
   },
   email: {
     type: String,
     required: true,
-    unique: true,
+    unique: true
   },
   password: {
     type: String,
-    required: true,
+    required: true
   },
   role: {
     type: String,
     enum: ["admin", "user"],
-    default: "user",
+    default: "user"
   },
   profilePicture: {
-    type: String,
+    type: String
   },
   cart: [
     {
       productId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
+        ref: "Product"
       },
       quantity: {
         type: Number,
-        default: 1,
-      },
-    },
+        default: 1
+      }
+    }
   ],
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
-  },
+    default: Date.now
+  }
 });
 
 const User = mongoose.model("User", userSchema);

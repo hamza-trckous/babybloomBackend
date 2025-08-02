@@ -7,16 +7,22 @@ const { auth, authorize } = require("../middleware/auth");
 const { z } = require("zod");
 const catchAsync = require("../utils/catchAsync");
 const { ValidationError, AuthenticationError } = require("../utils/errors");
+const rateLimit = require("express-rate-limit");
 
 // Validation schemas
 const registerSchema = z.object({
-  name: z.string().min(1),
-  lastname: z.string().min(1),
+  name: z.string().min(1, "هذا الحقل مطلوب"),
+  lastname: z.string().min(1, "هذا الحقل مطلوب"),
   dateOfbirth: z.string().optional(),
-  username: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(6),
-  placeofbirth: z.string().optional()
+  placeofbirth: z.string().optional(),
+  username: z.string().min(1, "هذا الحقل مطلوب"),
+  email: z.string().email("البريد الإلكتروني غير صالح"),
+  password: z
+    .string()
+    .min(8, "يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل")
+    .regex(/[A-Z]/, "يجب أن تحتوي على حرف كبير واحد على الأقل")
+    .regex(/[a-z]/, "يجب أن تحتوي على حرف صغير واحد على الأقل")
+    .regex(/\d/, "يجب أن تحتوي على رقم واحد على الأقل")
 });
 
 const loginSchema = z.object({
@@ -101,9 +107,23 @@ router.post(
 );
 
 // Login route
+const loginLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 6,
+  statusCode: 429,
+
+  message: {
+    status: "fail",
+    message: "عدد محاولات تسجيل الدخول تم تجاوزه. حاول مرة أخرى بعد 10 دقيقة"
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 router.post(
   "/login",
+  loginLimiter,
   catchAsync(async (req, res) => {
+    console.log("lgin");
     try {
       // Validate request body
       const { email, password } = loginSchema.parse(req.body);
@@ -112,9 +132,23 @@ router.post(
       if (!user) {
         throw new AuthenticationError("Invalid email or password");
       }
+      if (user.lockUntil && user.lockUntil > Date.now()) {
+        return res
+          .status(403)
+          .json({ message: "تم قفل الحساب مؤقتًا. حاول لاحقًا." });
+      }
       // Verify password
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
+        user.failedLoginAttempts += 1;
+        if (user.failedLoginAttempts >= 5) {
+          user.lockUntil = new Date(Date.now() + 10 * 60 * 1000);
+          await user.save();
+          return res.status(403).json({
+            message: "تم قفل   الحساب بعد عدة محاولات خاطئة. حاول بعد 10 دقائق."
+          });
+        }
+        await user.save();
         throw new AuthenticationError("Invalid email or password");
       }
       // Generate token
@@ -127,15 +161,19 @@ router.post(
         process.env.JWT_SECRET,
         { expiresIn: "1h" }
       );
+      console.log("creat1st Token ");
 
       // Set cookie
       res.cookie("token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: "none",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         path: "/",
         maxAge: 3600000 // 1 hour
       });
+      user.failedLoginAttempts = 0;
+      user.lockUntil = null;
+      await user.save();
       // Send response
       res.status(200).json({
         status: "success",
@@ -193,5 +231,16 @@ router.post(
     }
   })
 );
+
+router.post("/testHack", async (req, res) => {
+  const user = await User.findOne({
+    email: req.body.email,
+    password: req.body.password
+  });
+
+  if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+  res.json({ message: "Login success", user });
+});
 
 module.exports = router;

@@ -33,10 +33,7 @@ const validateCategory = (req, res, next) => {
 // @desc    Get all categories
 router.get("/", async (req, res) => {
   try {
-    const categories = await Category.find().populate({
-      path: "products"
-      // select the fields you want
-    });
+    const categories = await Category.find();
     res.status(200).json(categories);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });

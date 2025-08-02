@@ -4,7 +4,13 @@ const Product = require("../models/Product");
 const { z } = require("zod");
 const Category = require("../models/Categorys");
 const uploadToCloudinary = require("../utils/uploadToCloudinary");
-
+const csrfProtection = require("../middleware/csrf");
+const xss = require("xss");
+const { default: mongoose } = require("mongoose");
+const {
+  getPrinciplCategory,
+  getPagination
+} = require("../utils/filterAndPaginate");
 // Define Zod schema for Product
 const reviewSchema = z.object({
   text: z.string().min(1, "Review text is required"),
@@ -44,11 +50,36 @@ const productSchema = z.object({
   discountedPrice: z.number().min(0).optional(),
   category: z.string()
 });
-
+// sanitizeInputs for Adding Product
+const sanitizePructInput = (data) => {
+  return {
+    ...data,
+    name: xss(data.name),
+    description: xss(data.description),
+    LandingPageContent: Array.isArray(data.LandingPageContent)
+      ? data.LandingPageContent.map((section) => ({
+          title: xss(section.title || ""),
+          description: xss(section.description || ""),
+          image: xss(section.image || "")
+        }))
+      : [],
+    colors: data.colors?.map((c) => xss(c)) || [],
+    sizes: data.sizes?.map((s) => xss(s)) || [],
+    reviews:
+      data.reviews?.map((r) => ({
+        text: xss(r.text),
+        images: r.images || []
+      })) || []
+  };
+};
 // Middleware to validate request body
+
 const validateProduct = (req, res, next) => {
   try {
-    productSchema.parse(req.body);
+    const parsed = productSchema.parse(req.body);
+    console.log("befor sanitize", parsed);
+    req.body = sanitizePructInput(parsed);
+    console.log("after sanitize", req.body);
     next();
   } catch (e) {
     if (e instanceof z.ZodError) {
@@ -62,6 +93,8 @@ const validateProduct = (req, res, next) => {
 // filtred:/
 router.get("/filter", async (req, res) => {
   try {
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     const { category, color, size, minPrice, maxPrice, rating, withShipping } =
       req.query;
 
@@ -69,6 +102,7 @@ router.get("/filter", async (req, res) => {
     let categoryFilter = {};
     if (category) {
       const categoryDoc = await Category.findOne({ name: category });
+
       if (categoryDoc) {
         categoryFilter.category = categoryDoc._id;
       }
@@ -79,7 +113,9 @@ router.get("/filter", async (req, res) => {
     };
 
     if (color) {
-      const colorArray = color.split(",").map((c) => new RegExp(c, "i"));
+      const colorArray = color
+        .split(",")
+        .map((c) => new RegExp(escapeRegex(c), "i"));
       filter.colors = { $in: colorArray };
     }
 
@@ -113,8 +149,12 @@ router.get("/filter", async (req, res) => {
     }
 
     const products = await Product.find(filter)
-      .populate("category", "name description image")
+      .populate("category", "name")
       .sort({ _id: -1 })
+      .limit(10)
+      .select(
+        "name price images description discountedPrice rating reviews colors sizes withShipping"
+      ) // Updated select fields
       .lean();
 
     res.json(products);
@@ -129,43 +169,15 @@ router.get("/filter", async (req, res) => {
 // @access  Public
 router.get("/", async (req, res) => {
   try {
-    const category = req.query.category;
-    console.log(category);
-    const page = parseInt(req.query.page) || 1; // الصفحة الحالية
-    const limit = parseInt(req.query.limit) || 4; // عدد المنتجات في كل صفحة
-    const skip = (page - 1) * limit; // عدد المنتجات التي يجب تخطيها
-    let principalCategory = await Category.findOne({
-      name: "Principal Category"
-    });
-    if (!principalCategory) {
-      principalCategory = await Category.create({
-        name: "Principal Category",
-        description: "Default principal category",
-        image: "/téléchargement (4).jpeg",
-        products: []
-      });
-    }
+    const page = parseInt(req.query.page) || 1; // current Page
+    const limit = parseInt(req.query.limit) || 4; //Number Off products in each page
 
-    let products;
-    const totalProducts = await Product.countDocuments({
-      category: principalCategory._id
-    }); // إجمالي عدد المنتجات
-
-    if (req.query.page && req.query.limit) {
-      // منطق جلب المنتجات مع التصفح (pagination)
-      products = await Product.find({ category: principalCategory._id })
-        .populate("category", "name description image")
-        .sort({ _id: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
-    } else {
-      // منطق جلب جميع المنتجات
-      products = await Product.find({ category: principalCategory._id })
-        .populate("category", "name description image")
-        .sort({ _id: -1 })
-        .lean();
-    }
+    const principalCategory = await getPrinciplCategory();
+    const { products, totalProducts } = await getPagination(
+      principalCategory._id,
+      page,
+      limit
+    );
 
     res.json({ products, totalProducts });
   } catch (err) {
@@ -184,7 +196,7 @@ router.get("/:id", getProduct, (req, res) => {
 // @route   POST /api/products
 // @desc    Create a new product
 // @access  Public
-router.post("/", validateProduct, async (req, res) => {
+router.post("/", validateProduct, csrfProtection, async (req, res) => {
   try {
     const {
       name,
@@ -352,11 +364,18 @@ async function getProduct(req, res, next) {
 router.patch("/:id/landing", async (req, res) => {
   try {
     const { id } = req.params;
-    const { LandingPageContent } = req.body;
+    // const { LandingPageContent } = req.body;
 
+    const cleanContent = Array.isArray(req.body.LandingPageContent)
+      ? req.body.LandingPageContent.map((section) => ({
+          title: xss(section.title || ""),
+          description: xss(section.description || ""),
+          image: xss(section.image || "")
+        }))
+      : [];
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
-      { $push: { LandingPageContent } },
+      { $push: { LandingPageContent: { $each: cleanContent } } },
       { new: true }
     );
 
@@ -371,31 +390,34 @@ router.patch("/:id/landing", async (req, res) => {
 });
 
 router.delete("/:id/landing/:index", async (req, res) => {
+  const { id, index } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid product ID" });
+  }
+  const indexNumber = parseInt(index, 10);
+  if (isNaN(indexNumber) || indexNumber < 0) {
+    return res.status(400).json({ message: "Invalid index" });
+  }
   try {
-    const { id, index } = req.params;
-
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      {
-        $unset: { [`LandingPageContent.${index}`]: 1 }
-      },
-      { new: true }
-    );
-
-    // Remove null values from array
-    await Product.findByIdAndUpdate(
-      id,
-      {
-        $pull: { LandingPageContent: null }
-      },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found" });
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: "product not found " });
     }
-
-    res.json(updatedProduct);
+    if (!Array.isArray(product.LandingPageContent)) {
+      return res.status(400).json({
+        message: " LandingPageContent is not an array in the database"
+      });
+    }
+    if (indexNumber >= product.LandingPageContent.length) {
+      return res
+        .status(400)
+        .json({ message: " Landing page index is out of bounds" });
+    }
+    product.LandingPageContent.splice(indexNumber, 1);
+    await product.save();
+    res
+      .status(200)
+      .json({ message: "Landing page section removed successfully" });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

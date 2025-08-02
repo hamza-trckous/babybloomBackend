@@ -57,7 +57,6 @@ const createAdminUsers = async () => {
           ...admin,
           password: hashedPassword
         });
-      } else {
       }
     }
 

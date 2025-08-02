@@ -2,10 +2,12 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const { auth } = require("../middleware/auth");
+const xss = require("xss");
 
 // Add product to cart
 router.post("/add-to-cart", auth, async (req, res) => {
-  const { productId, quantity } = req.body;
+  const quantity = parseInt(req.body.quantity);
+  const productId = xss(req.body.productId);
   const userId = req.user.id;
 
   try {

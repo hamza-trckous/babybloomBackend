@@ -3,7 +3,8 @@ const router = express.Router();
 const profile = require("../models/profile");
 
 router.post("/profile", async (req, res) => {
-  const { logo, nameOfBrand, cover, color, slogon, category } = req.body;
+  const { logo, nameOfBrand, cover, color, slogon, category, email, accounts } =
+    req.body;
 
   try {
     const settings = await profile.findOneAndUpdate(
@@ -15,6 +16,8 @@ router.post("/profile", async (req, res) => {
         color,
         slogon,
         category,
+        email,
+        accounts,
         lastUpdated: Date.now()
       },
       { upsert: true, new: true }
