@@ -5,6 +5,7 @@ const { z } = require("zod");
 const { auth, authorize } = require("../middleware/auth");
 const Product = require("../models/Product");
 const uploadToCloudinary = require("../utils/uploadToCloudinary");
+const redisClient = require("../redis/client");
 
 // Define Zod schema for Category
 const categorySchema = z.object({
@@ -33,8 +34,23 @@ const validateCategory = (req, res, next) => {
 // @desc    Get all categories
 router.get("/", async (req, res) => {
   try {
-    const categories = await Category.find();
-    res.status(200).json(categories);
+    const cacheKey = "catefories:all";
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) {
+      return res.status(200).json(JSON.parse(cachedData));
+    }
+    const categories = await Category.find({ showing: true });
+    const results = await Promise.all(
+      categories.map(async (cat) => {
+        const products = await Product.find({ category: cat._id }).limit(4);
+
+        return { ...cat.toObject(), products };
+      })
+    );
+
+    await redisClient.setEx(cacheKey, 600, JSON.stringify(results));
+
+    res.status(200).json(results);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

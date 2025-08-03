@@ -5,7 +5,6 @@ const setLanguageAndColor = (req, res, next) => {
   let colo = "teal";
   if (LangCookie) {
     lang = LangCookie;
-    console.log(LangCookie);
   } else if (req.query.lang) {
     lang = req.query.lang;
   }

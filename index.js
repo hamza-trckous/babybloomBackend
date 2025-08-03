@@ -1,3 +1,9 @@
+// apollo
+const { ApolloServer } = require("apollo-server-express");
+const typeDefs = require("./graphql/typeDefs");
+const resolvers = require("./graphql/resolvers");
+// apollo
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -33,7 +39,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const mongoURI = process.env.MONGO_URI;
 const port = process.env.PORT || 5000;
 const app = express();
-
+let server;
 // Cookie configuration
 // const cookieConfig = {
 //   httpOnly: true,
@@ -187,8 +193,6 @@ const connectDB = async (retries = 5) => {
   }
 };
 
-connectDB();
-
 // Basic route
 app.get(
   "/",
@@ -197,10 +201,31 @@ app.get(
   })
 );
 
-// Handle undefined routes
-app.all("*", (req, res, next) => {
-  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
-});
+// appolo
+
+async function startApolloServer() {
+  await connectDB();
+  const apolloServer = new ApolloServer({
+    typeDefs,
+    resolvers
+  });
+
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app, path: "/graphql" });
+
+  // Handle undefined routes
+  app.all("*", (req, res, next) => {
+    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+  });
+  // Start server
+  server = app.listen(port, "0.0.0.0", () => {
+    console.log(`🚀 Server is running on port ${port}`);
+  });
+  console.log(`🚀 Apollo Server ready at http://localhost:${port}/graphql`);
+}
+startApolloServer();
+
+// appolo
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -218,11 +243,6 @@ app.use((err, req, res, next) => {
   }
 
   errorHandler(err, req, res, next);
-});
-
-// Start server
-const server = app.listen(port, "0.0.0.0", () => {
-  console.log(`🚀 Server is running on port ${port}`);
 });
 
 // Handle unhandled promise rejections
