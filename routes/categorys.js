@@ -144,17 +144,14 @@ router.get("/:id/products", async (req, res) => {
   const categoryId = req.params.id;
 
   try {
-    // 1. جرب تجيب البيانات من الكاش
     const cached = await redisClient.get(`category:${categoryId}:products`);
 
     if (cached) {
       return res.status(200).json(JSON.parse(cached));
     }
 
-    // 2. ما في كاش؟ جيب البيانات من قاعدة البيانات
     const products = await Product.find({ category: categoryId });
 
-    // 3. خزنها في الكاش لمدة مثلاً 5 دقائق (300 ثانية)
     await redisClient.set(
       `category:${categoryId}:products`,
       JSON.stringify(products),

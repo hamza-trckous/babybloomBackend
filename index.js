@@ -76,6 +76,7 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
       "Pragma",
+      "Expires",
       "Content-Type",
       "Authorization",
       "Cache-Control",
