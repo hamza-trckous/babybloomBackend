@@ -140,13 +140,33 @@ router.patch("/:id", auth, authorize(["admin"]), async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 router.get("/:id/products", async (req, res) => {
   const categoryId = req.params.id;
-  const products = await Product.find({ category: categoryId });
-  res.status(200).json(products);
-});
 
+  try {
+    // 1. جرب تجيب البيانات من الكاش
+    const cached = await redisClient.get(`category:${categoryId}:products`);
+
+    if (cached) {
+      return res.status(200).json(JSON.parse(cached));
+    }
+
+    // 2. ما في كاش؟ جيب البيانات من قاعدة البيانات
+    const products = await Product.find({ category: categoryId });
+
+    // 3. خزنها في الكاش لمدة مثلاً 5 دقائق (300 ثانية)
+    await redisClient.set(
+      `category:${categoryId}:products`,
+      JSON.stringify(products),
+      "EX",
+      300
+    );
+
+    return res.status(200).json(products);
+  } catch (err) {
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+});
 // Backend route: GET /api/category/:id/products?page=1&limit=4
 router.get("/:id/productsWithPagination", async (req, res) => {
   const categoryId = req.params.id;
