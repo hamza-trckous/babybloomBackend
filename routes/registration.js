@@ -34,7 +34,7 @@ const loginSchema = z.object({
 const getCookieConfig = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  sameSite: process.env.NODE_ENV === "production" ? "None" : "lax",
   path: "/",
   maxAge: 3600000 // 1 hour
 });
@@ -80,13 +80,7 @@ router.post(
       );
 
       // Set cookie
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/",
-        maxAge: 3600000 // 1 hour
-      });
+      res.cookie("token", token, getCookieConfig(req));
 
       // Send response
       res.status(201).json({
@@ -164,13 +158,7 @@ router.post(
       console.log("creat1st Token ");
 
       // Set cookie
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        maxAge: 3600000 // 1 hour
-      });
+      res.cookie("token", token, getCookieConfig(req));
       user.failedLoginAttempts = 0;
       user.lockUntil = null;
       await user.save();

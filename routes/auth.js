@@ -18,7 +18,7 @@ const loginSchema = z.object({
 const getCookieConfig = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
+  sameSite: "None",
   path: "/",
   maxAge: 3600000 // 1 hour
 });
@@ -31,7 +31,7 @@ router.get(
       const token =
         req.cookies.token ||
         (req.headers.authorization && req.headers.authorization.split(" ")[1]);
-
+      console.log("token", token);
       if (!token) {
         return res.status(401).json({
           status: "fail",
