@@ -17,6 +17,7 @@ const { AppError } = require("./utils/errors");
 // Import routes
 const authRoutes = require("./routes/auth");
 const registrationRoutes = require("./routes/registration");
+const stripeRoute = require("./routes/stripe");
 const productsRoutes = require("./routes/products");
 const usersRoutes = require("./routes/users");
 const ordersRoutes = require("./routes/orders");
@@ -32,6 +33,7 @@ const profile = require("./routes/profile");
 const categoriesRoutes = require("./routes/categorys");
 const setLanguageAndColor = require("./middleware/languageANdColorThemDetect");
 const { getTranslation } = require("./routes/langController");
+
 dotenv.config();
 
 // Environment variables and constants
@@ -148,6 +150,7 @@ app.get("/api/translate", getTranslation);
 
 app.use(setLanguageAndColor);
 app.use("/api", registrationRoutes);
+app.use("/api", stripeRoute);
 app.use("/api", authRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/users", usersRoutes);
