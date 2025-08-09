@@ -150,7 +150,7 @@ app.get("/api/translate", getTranslation);
 
 app.use(setLanguageAndColor);
 app.use("/api", registrationRoutes);
-app.use("/api", stripeRoute);
+app.use("/", stripeRoute);
 app.use("/api", authRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/users", usersRoutes);
